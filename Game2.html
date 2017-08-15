@@ -1,6 +1,6 @@
 <html>
 <canvas id = "gamecanvas" width  = "800" height = "600"></canvas>
-
+<p id = "hpText"></p>
 <script>
 	//Variable Start
 	var canvas;
@@ -8,7 +8,7 @@
 	var myPlayer;
 	var playerBulletList = [];
 	var Enemies = [];
-	
+	var isGameOver = false;
 	
 	
 	//Variable End
@@ -55,17 +55,60 @@
 		myPlayer.Position.x += _direction.x;
 		myPlayer.Position.y += _direction.y;
 	}
+	function MoveEnemies(){
+		var index, len;
+		
+		for (index = 0, len = Enemies.length; index < len; ++index) {
+			if(!Enemies[index]){
+					continue;
+				}
+			var _enemy = Enemies[index];
+			var _direction = CloserPointToPlayer(_enemy);
+			if(_direction.x == 0 && _direction.y == 0){
+				
+				//Enemies.splice(Enemies[index],1);
+				console.log("Enemy hit player");
+				EnemyDead(index);
+				myPlayer.health-=10;
+				if(myPlayer.health<=0){
+					isGameOver = true;
+					
+				}
+			}
+			_enemy.Position.x += _direction.x;
+			_enemy.Position.y += _direction.y;
+			
+			
+			
+		}
+	}
+	function GameOverScreen(){
+		console.log("Game Over");
+		drawBackground();
+	}
+	
 	function drawPlayer(){
 		drawRect(myPlayer.Position.x, myPlayer.Position.y,myPlayer.Volume.x,myPlayer.Volume.y,'green' );
 	}	
 	function Tick(){
 		//Stuff happen like 30 times per second.
 		drawBackground();
+		if(isGameOver){
+			GameOverScreen();
+			return;
+		}
 		drawPlayer();
+		MoveEnemies();
 		
 		drawEnemies();
 		MoveBullets();
+		HUD();
 	}	
+	function EnemyDead(_index){
+		Enemies.splice(_index, 1);
+		InstantiateEnemy();
+	}
+	
 	function KeyPressHandle(_event){
 		//87 -> W |83 -> S | 65 -> A | 68 ->D | 38 -> Up | 40 -> Down | 37 -> Left | 39 -> Right
 		var key = _event.keyCode;
@@ -130,6 +173,7 @@
 					playerBulletList[index].LifeTime-=1;
 					if(Collision(playerBulletList[index].Position)){					
 						playerBulletList.splice(index, 1);
+						
 					}
 					
 					
@@ -160,7 +204,10 @@
 					_enemy.health--;
 					console.log(_enemy.health);
 					if(_enemy.health<=0){
-						Enemies.splice(!Enemies[index],1);
+						console.log("Enemy die");
+						EnemyDead(index);
+						
+						
 					}
 					return true;
 				}
@@ -168,13 +215,39 @@
 		}
 	}
 	
-	
-	function InstantiateEnemy(){
-		var _enemy = new Enemy();
-		Enemies.push(_enemy);
+	function CloserPointToPlayer(_enemy){
+		var _x = _enemy.Position.x;
+		var _y = _enemy.Position.y;
+		var _x1 =  myPlayer.Position.x - _x;
+		var _y1 =  myPlayer.Position.y - _y;
+		if(_x1>0){
+			_x1 = _x1/_x1;
+		}else if (_x1<0){
+			_x1 = _x1/_x1*-1;
+		}
+		if(_y1>0){
+			_y1 = _y1/_y1;
+		}else if (_y1<0){
+			_y1 = _y1/_y1*-1;
+		}
+		return new Vector2(_x1,_y1);
+		
+		
 		
 	}
 	
+	function InstantiateEnemy(){
+		
+		var _location = new Vector2(getRandomInt(0,800),getRandomInt(0,600));
+		var _enemy = new Enemy(_location);
+		
+		
+		Enemies.push(_enemy);
+		
+	}
+	function HUD(){
+		document.getElementById("hpText").innerHTML= "Player Health : "+myPlayer.health;
+	}
 	function drawEnemies(){
 		var index, len;
 		
@@ -220,9 +293,13 @@
 		canvasContext.fill();
 	}
 	
+	function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+	
 	class Enemy{
-		constructor(){
-			this.Position = new Vector2(300,300);
+		constructor(_location){
+			this.Position = new Vector2(_location.x,_location.y);
 			this.Volume = new Vector2(10,10); 
 			this.MovementSpeed = 3;
 			this.AttackDelay = 1;
