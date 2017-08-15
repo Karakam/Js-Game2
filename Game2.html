@@ -247,6 +247,7 @@
 	}
 	function HUD(){
 		document.getElementById("hpText").innerHTML= "Player Health : "+myPlayer.health;
+		if(isGameOver)	document.getElementById("hpText").innerHTML= "Game Over";
 	}
 	function drawEnemies(){
 		var index, len;
