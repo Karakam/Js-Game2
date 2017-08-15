@@ -1,0 +1,271 @@
+<html>
+<canvas id = "gamecanvas" width  = "800" height = "600"></canvas>
+
+<script>
+	//Variable Start
+	var canvas;
+	var canvasContext;
+	var myPlayer;
+	var playerBulletList = [];
+	var Enemies = [];
+	
+	
+	
+	//Variable End
+	
+	
+	window.onload = function(){
+		Initalize();
+		myPlayer = new Player();
+		
+		
+		
+		document.addEventListener('keydown', function(event) {
+			KeyPressHandle(event);			
+		}, false);
+
+		
+	}
+	
+	function PlayerShoot(_direction){
+		
+		var _location = new Vector2(_direction.x + myPlayer.Position.x,_direction.y+myPlayer.Position.y);
+		
+		if(_direction.x>0){
+			_location.x += myPlayer.Volume.x;
+			_location.y += myPlayer.Volume.y/2;
+			
+		}else if(_direction.x<0){
+			_location.y += myPlayer.Volume.y/2;
+		}
+		
+		if(_direction.y>0){
+			_location.y += myPlayer.Volume.y + 4;
+			_location.x += myPlayer.Volume.x/2;
+		}else if(_direction.y<0) {
+			_location.x += myPlayer.Volume.x/2;
+		}
+		
+		var _bullet = new Bullet(_location, _direction, 'Player');
+		playerBulletList.push(_bullet);
+		
+	
+	}	
+	function MovePlayer(_direction){
+		myPlayer.Position.x += _direction.x;
+		myPlayer.Position.y += _direction.y;
+	}
+	function drawPlayer(){
+		drawRect(myPlayer.Position.x, myPlayer.Position.y,myPlayer.Volume.x,myPlayer.Volume.y,'green' );
+	}	
+	function Tick(){
+		//Stuff happen like 30 times per second.
+		drawBackground();
+		drawPlayer();
+		
+		drawEnemies();
+		MoveBullets();
+	}	
+	function KeyPressHandle(_event){
+		//87 -> W |83 -> S | 65 -> A | 68 ->D | 38 -> Up | 40 -> Down | 37 -> Left | 39 -> Right
+		var key = _event.keyCode;
+		switch(key){
+			case 87:
+				MovePlayer(new Vector2(0,-1));
+				
+				break;
+			case 83:
+				MovePlayer(new Vector2(0,1));
+				
+				break;
+			case 65:
+				MovePlayer(new Vector2(-1,0));
+				
+				break;
+			case 68:
+				MovePlayer(new Vector2(1,0));
+				
+				break;
+
+		}
+		switch (key){
+			case 38:
+				PlayerShoot(new Vector2(0,-1));
+				break;
+			case 40:
+				PlayerShoot(new Vector2(0,1));
+				break;
+				
+			case 37:
+				PlayerShoot(new Vector2(-1,0));
+				break;
+				
+			case 39:
+				PlayerShoot(new Vector2(1,0));
+				break;
+		}
+		
+		
+		//console.log(myPlayer.Position.x + ":" + myPlayer.Position.y);
+		
+        
+    
+	};	
+	
+	function MoveBullets(){
+		var index, len;
+		
+		for (index = 0, len = playerBulletList.length; index < len; ++index) {
+				if(!playerBulletList[index]){
+					continue;
+				}
+				drawRect(playerBulletList[index].Position.x,playerBulletList[index].Position.y,1,1,'black');
+				
+				if(playerBulletList[index].LifeTime>0){
+					
+					playerBulletList[index].Position.x += playerBulletList[index].Direction.x;
+					playerBulletList[index].Position.y += playerBulletList[index].Direction.y;
+					
+					drawRect(playerBulletList[index].Position.x,playerBulletList[index].Position.y,1,1,'red');
+					playerBulletList[index].LifeTime-=1;
+					if(Collision(playerBulletList[index].Position)){					
+						playerBulletList.splice(index, 1);
+					}
+					
+					
+				}else{
+					playerBulletList.splice(index, 1);
+				}
+				
+		
+		}
+		
+		
+			
+		
+	}
+	function Collision(_targetLocation){
+		var x = _targetLocation.x;
+		var y = _targetLocation.y;
+		var index, len;
+		
+		for (index = 0, len = Enemies.length; index < len; ++index) {
+			if(!Enemies[index]){
+					continue;
+				}
+			var _enemy = Enemies[index];
+			if(x>=_enemy.Position.x && x<=_enemy.Position.x + _enemy.Volume.x ){
+				if(y>=_enemy.Position.y && y <=_enemy.Position.y + _enemy.Volume.y){
+					console.log("Hit");
+					_enemy.health--;
+					console.log(_enemy.health);
+					if(_enemy.health<=0){
+						Enemies.splice(!Enemies[index],1);
+					}
+					return true;
+				}
+			}			
+		}
+	}
+	
+	
+	function InstantiateEnemy(){
+		var _enemy = new Enemy();
+		Enemies.push(_enemy);
+		
+	}
+	
+	function drawEnemies(){
+		var index, len;
+		
+		for (index = 0, len = Enemies.length; index < len; ++index) {
+			if(!Enemies[index]){
+					continue;
+				}
+			var _enemy = Enemies[index];
+			drawRect(_enemy.Position.x, _enemy.Position.y, _enemy.Volume.x, _enemy.Volume.y, _enemy.Colour);
+			
+			
+		}
+	}
+	
+	function Initalize(){
+		canvas = document.getElementById('gamecanvas');
+		canvasContext = canvas.getContext('2d');
+		var framesPerSeconds = 30;
+		setInterval(function(){Tick();},1000/framesPerSeconds);
+		
+		
+		InstantiateEnemy();
+		drawBackground();
+	}
+	function drawBackground(){
+		drawRect(0,0,canvas.width, canvas.height,'black');
+		
+	}	
+	function drawRect(_leftX, _topY, _width, _height, _drawColor){
+		canvasContext.fillStyle = _drawColor;
+		canvasContext.fillRect(_leftX,_topY,_width,_height);
+	}
+	function drawLine(_x1,_y1,_x2,_y2, _drawColor){
+		canvasContext.beginPath();
+		canvasContext.moveTo(_x1,_y1);
+		canvasContext.lineTo(_x2,_y2);
+		canvasContext.stroke();
+	}
+	function drawCircle(_centerX, _centerY, _radius, _drawColor){
+		canvasContext.beginPath();
+		canvasContext.fillStyle = _drawColor;
+		canvasContext.arc(_centerX,_centerY,_radius,0,Math.PI*2,true);
+		canvasContext.fill();
+	}
+	
+	class Enemy{
+		constructor(){
+			this.Position = new Vector2(300,300);
+			this.Volume = new Vector2(10,10); 
+			this.MovementSpeed = 3;
+			this.AttackDelay = 1;
+			this.health = 10;
+			this.damage = 10;
+			this.Colour = "yellow";
+		}
+		
+	}
+	
+	class Player{
+		constructor(){
+			this.Position = new Vector2(100,100);
+			this.Volume = new Vector2(10,10); 
+			this.MovementSpeed = 3;
+			this.AttackDelay = 1;
+			this.health = 100;
+			this.damage = 10;
+			this.Colour = "green";
+		}
+	}
+	
+	class Vector2{
+		constructor(_x,_y){
+			this.x = _x;
+			this.y = _y;
+		}
+	}
+	
+	class Bullet{
+		constructor(_position,_direction, _owner){
+			this.Position = new Vector2(_position.x, _position.y);
+			this.Direction = new Vector2(_direction.x,_direction.y);
+			this.Owner = _owner;
+			this.LifeTime = 100;
+			this.damage = myPlayer.damage;
+		}
+		
+		
+		
+	}
+	
+	
+	
+</script>
+</html>
